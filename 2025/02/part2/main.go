@@ -1,0 +1,131 @@
+/*
+--- Day 2: Gift Shop ---
+You get inside and take the elevator to its only other stop: the gift shop. "Thank you for visiting the North Pole!" gleefully exclaims a nearby sign. You aren't sure who is even allowed to visit the North Pole, but you know you can access the lobby through here, and from there you can access the rest of the North Pole base.
+
+As you make your way through the surprisingly extensive selection, one of the clerks recognizes you and asks for your help.
+
+As it turns out, one of the younger Elves was playing on a gift shop computer and managed to add a whole bunch of invalid product IDs to their gift shop database! Surely, it would be no trouble for you to identify the invalid product IDs for them, right?
+
+They've even checked most of the product ID ranges already; they only have a few product ID ranges (your puzzle input) that you'll need to check. For example:
+
+11-22,95-115,998-1012,1188511880-1188511890,222220-222224,
+1698522-1698528,446443-446449,38593856-38593862,565653-565659,
+824824821-824824827,2121212118-2121212124
+(The ID ranges are wrapped here for legibility; in your input, they appear on a single long line.)
+
+The ranges are separated by commas (,); each range gives its first ID and last ID separated by a dash (-).
+
+Since the young Elf was just doing silly patterns, you can find the invalid IDs by looking for any ID which is made only of some sequence of digits repeated twice. So, 55 (5 twice), 6464 (64 twice), and 123123 (123 twice) would all be invalid IDs.
+
+None of the numbers have leading zeroes; 0101 isn't an ID at all. (101 is a valid ID that you would ignore.)
+
+Your job is to find all of the invalid IDs that appear in the given ranges. In the above example:
+
+11-22 has two invalid IDs, 11 and 22.
+95-115 has one invalid ID, 99.
+998-1012 has one invalid ID, 1010.
+1188511880-1188511890 has one invalid ID, 1188511885.
+222220-222224 has one invalid ID, 222222.
+1698522-1698528 contains no invalid IDs.
+446443-446449 has one invalid ID, 446446.
+38593856-38593862 has one invalid ID, 38593859.
+The rest of the ranges contain no invalid IDs.
+Adding up all the invalid IDs in this example produces 1227775554.
+
+What do you get if you add up all of the invalid IDs?
+*/
+
+package main
+
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+)
+
+func readInput(filename string) [][2]string {
+	file, err := os.ReadFile(filename)
+
+	if err != nil {
+		panic(err)
+	}
+
+	contents := string(file)
+  contents =	strings.ReplaceAll(contents, "\n", "")
+
+	pairs := strings.Split(contents, ",")
+
+	var final_pairs [][2] string
+
+	for _, pair := range pairs {
+		final_pairs = append(
+			final_pairs,
+			[2]string(strings.Split(pair, "-")),
+		)
+	}
+
+	return final_pairs
+}
+
+func sumInvalid(pair [2]string) int {
+	bottomLimit, err := strconv.Atoi(pair[0])
+
+	if err != nil {
+		panic(err)
+	}
+
+	upperLimit, err := strconv.Atoi(pair[1])
+
+	if err != nil {
+		panic(err)
+	}
+
+	sum := 0
+	patterns := make(map[string]int)
+
+	for i := bottomLimit; i <= upperLimit; i++ {
+		strValue := strconv.Itoa(i)
+		pairness := len(strValue) & 1
+
+		for j := 1; j < len(strValue) / 2 + 1 + pairness; j++ {
+			patterns[strValue[:j]] = 0
+		}
+
+		PATTERN_LOOP:
+		for key := range patterns {
+			for j := 0; j < len(strValue) / len(key); j++ {
+				start := j * len(key)
+				end := start + len(key)
+				if strValue[start : end] != key {
+					continue PATTERN_LOOP
+				}
+				patterns[key] += 1
+			}
+
+		}
+
+		for pattern, value := range patterns {
+			if len(pattern) * value == len(strValue) && value > 1 {
+				sum += i
+				break
+			}
+		}
+	}
+
+	return sum
+}
+
+func main() {
+	pairs := readInput("input.txt")
+
+	sum := 0
+
+	for i, pair := range pairs {
+		fmt.Println("Pair", i+1)
+		fmt.Println(pair[0], "-", pair[1])
+		sum += sumInvalid(pair)
+	}
+
+	fmt.Println("The sum is", sum)
+}
